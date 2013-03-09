@@ -128,11 +128,13 @@ public:
 	{
 		needsDecode = false;
 		totBits = 0;
+		baseClass = "";
 	}
 public:
 	std::string name;
 	int totBits;
 	bool needsDecode;
+	std::string baseClass;
 	std::vector<ReceiveTableProperty> props;
 	std::vector<ReceiveTableProperty> exclusions;
 };
@@ -150,12 +152,26 @@ public:
 			if(!it->second.needsDecode)
 				continue;
 
+
 			FlattenedTables[it->first] = it->second;
 			ReceiveTableClass* Table = &FlattenedTables[it->first];
+
+			auto base = dotaClasses.find(Table->baseClass);
+			while(true)
+			{
+				if(base != dotaClasses.end())
+				{
+					Table->exclusions.insert(Table->exclusions.end(), base->second.exclusions.begin(), base->second.exclusions.end());
+					base = dotaClasses.find(base->second.baseClass);
+				}
+				else
+					break;
+			}
+
 			for(unsigned int i = 0; i < Table->props.size(); i++)
 			{
 				ReceiveTableProperty* prop = &Table->props[i];
-				if(prop->type == DPT_DataTable /*&& !(prop->flags & ALWAYSPROXY)*/)
+				if(prop->type == DPT_DataTable)  /*&& !(prop->flags & ALWAYSPROXY)*/
 				{
 					auto dt = dotaClasses.find(prop->dt_name);
 					if(dt != dotaClasses.end())
@@ -164,22 +180,22 @@ public:
 
 						std::vector<ReceiveTableProperty> temp;
 						temp.insert(temp.begin(), dt->second.props.begin(), dt->second.props.end());
-
+						std::string tableName = dt->second.name;//temp[k].originalTable;
+						
 						for(unsigned int k = 0; k < temp.size(); k++) //go trough every property in temp
 						{
 							std::string varName = temp[k].var_name;
-							std::string tableName = temp[k].originalTable;
 							for(unsigned int q = 0; q < Table->exclusions.size(); q++) //if property is in exclusions, erase it
 							{
 								if(Table->exclusions[q].dt_name == tableName && Table->exclusions[q].var_name == varName)
 								{
 									Table->exclusions[q].Excluded = true;
 									temp.erase(temp.begin() + k);
+									k--;
 									break;
 								}
 							}
 						}
-						Table->exclusions.insert(Table->exclusions.end(),dt->second.exclusions.begin(), dt->second.exclusions.end()); //add the exclusions in the table you're inserting
 						Table->props.insert(Table->props.begin() + i, temp.begin(), temp.end());
 						i--;
 					}
@@ -198,8 +214,8 @@ public:
 												Table->exclusions[i].Excluded ? "Excluded" : "Missed");
 			printf("Properties:\n");
 			for(unsigned int i = 0; i < Table->props.size(); i++)
-				printf("%d: %s (%s) flags: %s\n", i,	Table->props[i].var_name.c_str(),
-														Table->props[i].originalTable.c_str(),
+				printf("%d: %s.%s  flags: %s\n", i,		Table->props[i].originalTable.c_str(),
+														Table->props[i].var_name.c_str(),
 														getFlags(Table->props[i].flags).c_str());
 		}
 	}

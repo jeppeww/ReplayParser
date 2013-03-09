@@ -366,6 +366,8 @@ void CDemoFileDump::DumpDemoPacket( const std::string& buf )
 				CSVCMsg_SendTable msg;
 				if(msg.ParseFromArray( parseBuffer, Size))
 				{
+					if(msg.is_end())
+						break;
 					ReceiveTableClass receiveTable;
 					receiveTable.name = msg.net_table_name();
 					receiveTable.needsDecode = msg.needs_decoder();
@@ -398,6 +400,9 @@ void CDemoFileDump::DumpDemoPacket( const std::string& buf )
 							receiveTable.exclusions.push_back(receiveProperty);
 						else
 							receiveTable.props.push_back(receiveProperty);
+						
+						if(receiveProperty.var_name == "baseclass")
+							receiveTable.baseClass = receiveProperty.dt_name;
 												
 					}
 					dotaClassContainer.dotaClasses[receiveTable.name] = receiveTable;
