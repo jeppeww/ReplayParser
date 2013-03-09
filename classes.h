@@ -161,7 +161,7 @@ public:
 			{
 				if(base != dotaClasses.end())
 				{
-					Table->exclusions.insert(Table->exclusions.end(), base->second.exclusions.begin(), base->second.exclusions.end());
+					Table->exclusions.insert(Table->exclusions.begin(), base->second.exclusions.begin(), base->second.exclusions.end());
 					base = dotaClasses.find(base->second.baseClass);
 				}
 				else
@@ -185,14 +185,18 @@ public:
 						for(unsigned int k = 0; k < temp.size(); k++) //go trough every property in temp
 						{
 							std::string varName = temp[k].var_name;
+							bool excluded = false;
 							for(unsigned int q = 0; q < Table->exclusions.size(); q++) //if property is in exclusions, erase it
 							{
 								if(Table->exclusions[q].dt_name == tableName && Table->exclusions[q].var_name == varName)
 								{
 									Table->exclusions[q].Excluded = true;
-									temp.erase(temp.begin() + k);
-									k--;
-									break;
+									if(!excluded) //doing this to properly mark duplicate exclusions
+									{
+										temp.erase(temp.begin() + k);
+										k--;
+										excluded = true;
+									}
 								}
 							}
 						}
